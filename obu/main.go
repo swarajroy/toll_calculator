@@ -8,11 +8,12 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/swarajroy/toll_calculator/types"
 )
 
 const (
 	duration   = 1 * time.Second
-	wsEndpoint = "ws://127.0.0.1:3000/ws-endpoint"
+	wsEndpoint = "ws://127.0.0.1:30000/ws"
 )
 
 type OBUData struct {
@@ -48,12 +49,14 @@ func main() {
 		if err := conn.WriteJSON(obuData); err != nil {
 			log.Fatal(err)
 		}
-		<-ticker.C
+		tick := <-ticker.C
+		log.Println("tick = ", tick)
+
 	}
 }
 
-func NewOBUData(obuId int, lat, long float64) OBUData {
-	return OBUData{
+func NewOBUData(obuId int, lat, long float64) types.OBUData {
+	return types.OBUData{
 		OBUID: obuId,
 		Lat:   lat,
 		Long:  long,
