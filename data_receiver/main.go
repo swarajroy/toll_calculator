@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,17 +13,20 @@ import (
 )
 
 const (
-	topic = "obu-events"
+	OBU_EVENTS_TOPIC = "obu-events"
 )
 
 type DataReceiver struct {
-	msgch chan types.OBUData
-	conn  *websocket.Conn
+	conn *websocket.Conn
+	p    *kafka.Producer
 }
 
 func main() {
 	log.Println("starting data receiver")
-	dr := NewDataReceiver()
+	dr, err := NewDataReceiver()
+	if err != nil {
+		log.Fatal(err)
+	}
 	http.HandleFunc("/ws", dr.handleWS)
 	http.ListenAndServe(":30000", nil)
 	log.Println("data receiver exited")
@@ -30,39 +34,27 @@ func main() {
 	time.Sleep(time.Second * 60)
 }
 
-func produceToKafka() {
-	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": "localhost"})
-	if err != nil {
-		panic(err)
-	}
-
+func (dr *DataReceiver) produceToKafka(data types.OBUData) error {
+	var p = dr.p
 	defer p.Close()
 
-	// Delivery report handler for produced messages
-	go func() {
-		for e := range p.Events() {
-			switch ev := e.(type) {
-			case *kafka.Message:
-				if ev.TopicPartition.Error != nil {
-					fmt.Printf("Delivery failed: %v\n", ev.TopicPartition)
-				} else {
-					fmt.Printf("Delivered message to %v\n", ev.TopicPartition)
-				}
-			}
-		}
-	}()
-
-	// Produce messages to topic (asynchronously)
-	topic := "topic"
-	for _, word := range []string{"Welcome", "to", "the", "Confluent", "Kafka", "Golang", "client"} {
-		p.Produce(&kafka.Message{
-			TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
-			Value:          []byte(word),
-		}, nil)
+	b, err := json.Marshal(data)
+	if err != nil {
+		return err
 	}
+
+	// Produce messages to topic (asynchronously
+	topic := OBU_EVENTS_TOPIC
+
+	err = p.Produce(&kafka.Message{
+		TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
+		Key:            []byte(fmt.Sprintf("%d", data.OBUID)),
+		Value:          b,
+	}, nil)
 
 	// Wait for message deliveries before shutting down
 	p.Flush(15 * 1000)
+	return err
 }
 
 func (dr *DataReceiver) handleWS(w http.ResponseWriter, r *http.Request) {
@@ -91,11 +83,17 @@ func (dr *DataReceiver) wsReceiveLoop() {
 		}
 		log.Printf("received obu data from [%d]", data.OBUID)
 		//dr.msgch <- data
+		dr.produceToKafka(data)
 	}
 }
 
-func NewDataReceiver() *DataReceiver {
-	return &DataReceiver{
-		msgch: make(chan types.OBUData, 8),
+func NewDataReceiver() (*DataReceiver, error) {
+	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": "localhost"})
+	if err != nil {
+		return nil, err
 	}
+
+	return &DataReceiver{
+		p: p,
+	}, nil
 }
