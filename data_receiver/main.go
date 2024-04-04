@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -13,7 +12,7 @@ import (
 )
 
 const (
-	OBU_EVENTS_TOPIC = "obu-events"
+	OBU_EVENTS = "obu-events"
 )
 
 type DataReceiver struct {
@@ -35,26 +34,19 @@ func main() {
 }
 
 func (dr *DataReceiver) produceToKafka(data types.OBUData) error {
-	var p = dr.p
-	defer p.Close()
 
-	b, err := json.Marshal(data)
+	d, err := json.Marshal(data)
 	if err != nil {
 		return err
 	}
 
-	// Produce messages to topic (asynchronously
-	topic := OBU_EVENTS_TOPIC
-
-	err = p.Produce(&kafka.Message{
+	// Produce messages to topic (asynchronously)
+	topic := OBU_EVENTS
+	return dr.p.Produce(&kafka.Message{
 		TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
-		Key:            []byte(fmt.Sprintf("%d", data.OBUID)),
-		Value:          b,
+		Value:          []byte(d),
 	}, nil)
 
-	// Wait for message deliveries before shutting down
-	p.Flush(15 * 1000)
-	return err
 }
 
 func (dr *DataReceiver) handleWS(w http.ResponseWriter, r *http.Request) {
@@ -92,7 +84,6 @@ func NewDataReceiver() (*DataReceiver, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return &DataReceiver{
 		p: p,
 	}, nil

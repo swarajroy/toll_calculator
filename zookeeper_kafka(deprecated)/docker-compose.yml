@@ -1,41 +1,44 @@
-version: '3.5'
+version: "3.5"
 services:
   zookeeper:
     image: confluentinc/cp-zookeeper:6.1.1
     hostname: zookeeper
     container_name: zookeeper
     ports:
-      - '2181:2181'
-      - '32181:32181'
+      - "2181:2181"
+      - "32181:32181"
     environment:
       ZOOKEEPER_CLIENT_PORT: 32181
       ZOOKEEPER_TICK_TIME: 2000
     networks:
       - kafka_broker
 
-  kafdrop:
-    image: obsidiandynamics/kafdrop
-    restart: "no"
+  kafka-ui:
+    container_name: kafka-ui
+    image: provectuslabs/kafka-ui:latest
     ports:
-      - "9003:9000"
-    environment:
-      KAFKA_BROKERCONNECT: "kafka:29092"
-      SCHEMAREGISTRY_CONNECT: "http://schema-registry:8081"
-      MESSAGE_FORMAT: "avro"
-      JVM_OPTS: "-Xms16M -Xmx48M -Xss180K -XX:-TieredCompilation -XX:+UseStringDeduplication -noverify"
-    networks:
-      - kafka_broker
+      - 8083:8080
     depends_on:
       - kafka
       - schema-registry
+    networks:
+      - kafka_broker
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      KAFKA_CLUSTERS_0_METRICS_PORT: 9997
+      KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schema-registry:8081
+      DYNAMIC_CONFIG_ENABLED: "true" # not necessary, added for tests
+      KAFKA_CLUSTERS_0_AUDIT_TOPICAUDITENABLED: "true"
+      KAFKA_CLUSTERS_0_AUDIT_CONSOLEAUDITENABLED: "true"
 
   kafka:
     image: confluentinc/cp-kafka:6.1.1
     hostname: kafka
     container_name: kafka
     ports:
-      - '9092:9092'
-      - '29092:29092'
+      - "9092:9092"
+      - "29092:29092"
     depends_on:
       - zookeeper
     environment:
@@ -64,11 +67,11 @@ services:
       - zookeeper
       - kafka
     ports:
-      - '8081:8081'
-      - '48081:48081'
+      - "8081:8081"
+      - "48081:48081"
     environment:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
-      SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: 'zookeeper:32181'
+      SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: "zookeeper:32181"
     networks:
       - kafka_broker
 
@@ -86,50 +89,10 @@ services:
     # must control startup order more explicitly.
     # See https://docs.docker.com/compose/startup-order/
     command: "bash -c 'echo Waiting for Kafka to be ready... && \
-                       cub kafka-ready -b kafka:29092 1 20 && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic exchange-times-events --config cleanup.policy=compact --config max.compaction.lag.ms=86400000 || true && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic customer-activity-events || true  && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic fx-rate-events --config cleanup.policy=compact --config max.compaction.lag.ms=86400000 || true && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic realtime-price-audit-events || true && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 3 --topic content-item-events || true && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic static-instrument --config cleanup.policy=compact --config max.compaction.lag.ms=86400000 || true && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic price-alert-events || true && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic new-customer-events || true && \		
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic password-change-events || true && \   
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic cash-withdrawals-blocked-events || true && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic cash-withdrawal-created-events || true && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic cash-transfer-created-events || true && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic payee-saved-events || true && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic telephone-auth-level1-success-events || true && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic priips-document-changed-events || true && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic sipp-document-published-events || true && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic sipp-disinvestment-failed-events || true && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic username-reminder-events || true && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic personal-details-changed-events || true && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic mobile-phone-number-changed-events || true && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic bank-holidays-events --config cleanup.policy=compact --config max.compaction.lag.ms=86400000 || true && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic ACTIVEFS.BARGIN || true && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic ACTIVEFS.ORDER || true && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic ACTIVEFS.CLIENT || true && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic ACTIVEFS.DHOLD || true && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic ACTIVEFS.ROTCLI || true && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic ACTIVEFS.ROTAUT || true && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic ACTIVEFS.STFAGT || true && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic account-events || true && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic order-events || true && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic order-fill-events || true && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic portfolio-holding-events || true && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic customer-account-role-events --config cleanup.policy=compact --config max.compaction.lag.ms=86400000 || true && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic customer-account-access-events --config cleanup.policy=compact --config max.compaction.lag.ms=86400000 || true && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic agent-detail-events --config cleanup.policy=compact --config max.compaction.lag.ms=86400000 || true && \
-                       
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic order-monitor-events || true && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic sipp-notification-events || true && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic sipp-negative-balance-events || true && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic secure-message-unread-count-changed-events || true && \
-                       kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic friends-and-family-relationship-changed-events || true && \
-                       kafka-topics --create --bootstrap-server kafka:29092 --replication-factor 1 --partitions 1 --topic new-account-created-events || true && \
-                       sleep infinity'"
+      cub kafka-ready -b kafka:29092 1 20 && \
+      kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic compacted-topic-events --config cleanup.policy=compact --config max.compaction.lag.ms=86400000 || true && \
+      kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic obu-events || true && \
+      sleep infinity'"
 
     environment:
       # The following settings are listed here only to satisfy the image's requirements.
