@@ -26,6 +26,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	http.HandleFunc("/ws", dr.handleWS)
 	http.ListenAndServe(":30000", nil)
 	log.Println("data receiver exited")
@@ -84,6 +85,22 @@ func NewDataReceiver() (*DataReceiver, error) {
 	if err != nil {
 		return nil, err
 	}
+	//defer p.Close()
+
+	// Delivery report handler for produced messages
+	// go func() {
+	// 	for e := range p.Events() {
+	// 		switch ev := e.(type) {
+	// 		case *kafka.Message:
+	// 			if ev.TopicPartition.Error != nil {
+	// 				log.Fatalf("Delivery failed: %v\n", ev.TopicPartition)
+	// 			} else {
+	// 				log.Printf("Delivered message to %v\n", ev.TopicPartition)
+	// 			}
+	// 		}
+	// 	}
+	// }()
+
 	return &DataReceiver{
 		p: p,
 	}, nil
