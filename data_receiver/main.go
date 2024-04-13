@@ -1,23 +1,19 @@
 package main
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 	"time"
 
-	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/gorilla/websocket"
+	"github.com/swarajroy/toll_calculator/data_receiver/middleware"
+	"github.com/swarajroy/toll_calculator/data_receiver/producer"
 	"github.com/swarajroy/toll_calculator/types"
-)
-
-const (
-	OBU_EVENTS = "obu-events"
 )
 
 type DataReceiver struct {
 	conn *websocket.Conn
-	p    *kafka.Producer
+	prod producer.DataProducer
 }
 
 func main() {
@@ -32,22 +28,6 @@ func main() {
 	log.Println("data receiver exited")
 
 	time.Sleep(time.Second * 60)
-}
-
-func (dr *DataReceiver) produceToKafka(data types.OBUData) error {
-
-	d, err := json.Marshal(data)
-	if err != nil {
-		return err
-	}
-
-	// Produce messages to topic (asynchronously)
-	topic := OBU_EVENTS
-	return dr.p.Produce(&kafka.Message{
-		TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
-		Value:          []byte(d),
-	}, nil)
-
 }
 
 func (dr *DataReceiver) handleWS(w http.ResponseWriter, r *http.Request) {
@@ -75,33 +55,23 @@ func (dr *DataReceiver) wsReceiveLoop() {
 			continue
 		}
 		log.Printf("received obu data from [%d]", data.OBUID)
-		//dr.msgch <- data
-		dr.produceToKafka(data)
+		dr.prod.Publish(data)
 	}
 }
 
 func NewDataReceiver() (*DataReceiver, error) {
-	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": "localhost"})
+	var (
+		p   producer.DataProducer
+		err error
+	)
+	p, err = producer.NewKafkaProducer()
 	if err != nil {
 		return nil, err
 	}
-	//defer p.Close()
 
-	// Delivery report handler for produced messages
-	// go func() {
-	// 	for e := range p.Events() {
-	// 		switch ev := e.(type) {
-	// 		case *kafka.Message:
-	// 			if ev.TopicPartition.Error != nil {
-	// 				log.Fatalf("Delivery failed: %v\n", ev.TopicPartition)
-	// 			} else {
-	// 				log.Printf("Delivered message to %v\n", ev.TopicPartition)
-	// 			}
-	// 		}
-	// 	}
-	// }()
+	p = middleware.NewLogMiddleware(p)
 
 	return &DataReceiver{
-		p: p,
+		prod: p,
 	}, nil
 }
