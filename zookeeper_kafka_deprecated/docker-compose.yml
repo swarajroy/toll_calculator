@@ -1,0 +1,108 @@
+version: "3.5"
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:6.1.1
+    hostname: zookeeper
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+      - "32181:32181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 32181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - kafka_broker
+
+  kafka-ui:
+    container_name: kafka-ui
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - 8083:8080
+    depends_on:
+      - kafka
+      - schema-registry
+    networks:
+      - kafka_broker
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      KAFKA_CLUSTERS_0_METRICS_PORT: 9997
+      KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schema-registry:8081
+      DYNAMIC_CONFIG_ENABLED: "true" # not necessary, added for tests
+      KAFKA_CLUSTERS_0_AUDIT_TOPICAUDITENABLED: "true"
+      KAFKA_CLUSTERS_0_AUDIT_CONSOLEAUDITENABLED: "true"
+
+  kafka:
+    image: confluentinc/cp-kafka:6.1.1
+    hostname: kafka
+    container_name: kafka
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:32181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_DELETE_TOPIC_ENABLE: "true"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      #KAFKA_METRIC_REPORTERS: io.confluent.metrics.reporter.ConfluentMetricsReporter
+      #CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: kafka:29092
+      #CONFLUENT_METRICS_REPORTER_ZOOKEEPER_CONNECT: zookeeper:32181
+      #CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
+      #CONFLUENT_METRICS_ENABLE: 'true'
+      #CONFLUENT_SUPPORT_CUSTOMER_ID: 'anonymous'
+    networks:
+      - kafka_broker
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:5.5.0
+    hostname: schema-registry
+    container_name: schema-registry
+    depends_on:
+      - zookeeper
+      - kafka
+    ports:
+      - "8081:8081"
+      - "48081:48081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: "zookeeper:32181"
+    networks:
+      - kafka_broker
+
+  # This "container" is a workaround to pre-create topics for the respective services that consume/produce data to topics
+  # until we have a more elegant way to do that.
+  kafka-create-topics:
+    image: confluentinc/cp-kafka:6.1.1
+    depends_on:
+      - kafka
+    hostname: kafka-create-topics
+    container_name: kafka-create-topics
+    # We defined a dependency on "kafka", but `depends_on` will NOT wait for the
+    # dependencies to be "ready" before starting the "kafka-create-topics"
+    # container;  it waits only until the dependencies have started.  Hence we
+    # must control startup order more explicitly.
+    # See https://docs.docker.com/compose/startup-order/
+    command: "bash -c 'echo Waiting for Kafka to be ready... && \
+      cub kafka-ready -b kafka:29092 1 20 && \
+      kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic compacted-topic-events --config cleanup.policy=compact --config max.compaction.lag.ms=86400000 || true && \
+      kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic obu-events || true && \
+      sleep infinity'"
+
+    environment:
+      # The following settings are listed here only to satisfy the image's requirements.
+      # We override the image's `command` anyways, hence this container will not start a broker.
+      KAFKA_BROKER_ID: ignored
+      KAFKA_ZOOKEEPER_CONNECT: ignored
+    networks:
+      - kafka_broker
+
+networks:
+  kafka_broker:
+    name: zookeeper_schema_registry_kafka
+    driver: bridge
