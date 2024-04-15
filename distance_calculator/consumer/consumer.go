@@ -6,26 +6,26 @@ import (
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/sirupsen/logrus"
+	"github.com/swarajroy/toll_calculator/distance_calculator/service"
 	"github.com/swarajroy/toll_calculator/types"
 )
 
 type DataConsumer interface {
-	Consume(data *types.OBUData)
 	Start()
 }
 
 type KafkaDataConsumer struct {
 	c         *kafka.Consumer
 	isRunning bool
+	svc       service.CalculatorServicer
 }
 
-func NewDataConsumer(topic string) (DataConsumer, error) {
+func NewDataConsumer(topic string, svc service.CalculatorServicer) (DataConsumer, error) {
 	c, err := kafka.NewConsumer(&kafka.ConfigMap{
 		"bootstrap.servers": "localhost",
 		"group.id":          "myGroup",
 		"auto.offset.reset": "earliest",
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +33,8 @@ func NewDataConsumer(topic string) (DataConsumer, error) {
 	c.SubscribeTopics([]string{topic}, nil)
 
 	return &KafkaDataConsumer{
-		c: c,
+		c:   c,
+		svc: svc,
 	}, nil
 }
 
@@ -48,18 +49,22 @@ func (kc *KafkaDataConsumer) readMessageLoop() {
 		var data *types.OBUData
 		if err = json.Unmarshal(msg.Value, &data); err != nil {
 			logrus.Errorf("error occured whilst unmarshalling")
+			continue
 		}
-		kc.Consume(data)
-	}
-}
 
-func (kc *KafkaDataConsumer) Consume(data *types.OBUData) {
-	logrus.WithFields(logrus.Fields{
-		"obuID": data.OBUID,
-	}).Info("consuming from kafka")
+		distance, err := kc.svc.CalculateDistance(data)
+		if err != nil {
+			logrus.Errorf("error occurred")
+			continue
+		}
+		_ = distance
+	}
+	fmt.Println("exit readMessageLoop")
+	kc.c.Close()
 }
 
 func (kc *KafkaDataConsumer) Start() {
+	fmt.Println("kafka transport for consumption started")
 	kc.isRunning = true
 	kc.readMessageLoop()
 }

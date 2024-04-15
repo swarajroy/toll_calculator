@@ -2,9 +2,8 @@ package producer
 
 import (
 	"encoding/json"
-	"log"
 
-	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/swarajroy/toll_calculator/types"
 )
 
@@ -25,21 +24,21 @@ func NewKafkaProducer() (DataProducer, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer p.Close()
+	//defer p.Close()
 
 	//Delivery report handler for produced messages
-	go func() {
-		for e := range p.Events() {
-			switch ev := e.(type) {
-			case *kafka.Message:
-				if ev.TopicPartition.Error != nil {
-					log.Fatalf("Delivery failed: %v\n", ev.TopicPartition)
-				} else {
-					log.Printf("Delivered message to %v\n", ev.TopicPartition)
-				}
-			}
-		}
-	}()
+	// go func() {
+	// 	for e := range p.Events() {
+	// 		switch ev := e.(type) {
+	// 		case *kafka.Message:
+	// 			if ev.TopicPartition.Error != nil {
+	// 				log.Fatalf("Delivery failed: %v\n", ev.TopicPartition)
+	// 			} else {
+	// 				log.Printf("Delivered message to %v\n", ev.TopicPartition)
+	// 			}
+	// 		}
+	// 	}
+	// }()
 
 	return &KafkaProducer{
 		p: p,

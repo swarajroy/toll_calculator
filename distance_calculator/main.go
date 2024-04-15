@@ -1,10 +1,10 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/sirupsen/logrus"
 	"github.com/swarajroy/toll_calculator/distance_calculator/consumer"
+	"github.com/swarajroy/toll_calculator/distance_calculator/middleware"
+	"github.com/swarajroy/toll_calculator/distance_calculator/service"
 )
 
 const (
@@ -12,8 +12,10 @@ const (
 )
 
 func main() {
-	fmt.Println("This is working just fine")
-	kc, err := consumer.NewDataConsumer(topic)
+
+	svc := service.NewCalculatoServicer()
+	lm := middleware.NewLogMiddleware(svc)
+	kc, err := consumer.NewDataConsumer(topic, lm)
 	if err != nil {
 		logrus.Fatal("kafka consumer creation errored")
 	}
