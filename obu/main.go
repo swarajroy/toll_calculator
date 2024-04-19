@@ -29,7 +29,7 @@ func genCoord() float64 {
 }
 
 func getRandomOBUIDIndex(n int) int {
-	return rand.Intn(20)
+	return rand.Intn(n)
 }
 
 func main() {
