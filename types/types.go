@@ -12,10 +12,24 @@ type Distance struct {
 	Unix  int64   `json:"unix"`
 }
 
+type Invoice struct {
+	OBUID         int     `json:"obuID"`
+	TotalDistance float64 `json:"totalDistance"`
+	InvoiceAmount float64 `json:"invoiceAmount"`
+}
+
 func NewDistance(value float64, obuID int, unix int64) Distance {
 	return Distance{
 		Value: value,
 		OBUID: obuID,
 		Unix:  unix,
+	}
+}
+
+func NewInvoice(obuID int, totalDist float64, invAmount float64) *Invoice {
+	return &Invoice{
+		OBUID:         obuID,
+		TotalDistance: totalDist,
+		InvoiceAmount: invAmount,
 	}
 }
