@@ -3,9 +3,11 @@ package consumer
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/sirupsen/logrus"
+	"github.com/swarajroy/toll_calculator/aggregator/aggcleint"
 	"github.com/swarajroy/toll_calculator/distance_calculator/service"
 	"github.com/swarajroy/toll_calculator/types"
 )
@@ -18,9 +20,10 @@ type KafkaDataConsumer struct {
 	c         *kafka.Consumer
 	isRunning bool
 	svc       service.CalculatorServicer
+	client    *aggcleint.Client
 }
 
-func NewDataConsumer(topic string, svc service.CalculatorServicer) (DataConsumer, error) {
+func NewDataConsumer(topic string, svc service.CalculatorServicer, client *aggcleint.Client) (DataConsumer, error) {
 	c, err := kafka.NewConsumer(&kafka.ConfigMap{
 		"bootstrap.servers": "localhost",
 		"group.id":          "myGroup",
@@ -33,8 +36,9 @@ func NewDataConsumer(topic string, svc service.CalculatorServicer) (DataConsumer
 	c.SubscribeTopics([]string{topic}, nil)
 
 	return &KafkaDataConsumer{
-		c:   c,
-		svc: svc,
+		c:      c,
+		svc:    svc,
+		client: client,
 	}, nil
 }
 
@@ -57,7 +61,11 @@ func (kc *KafkaDataConsumer) readMessageLoop() {
 			logrus.Errorf("error occurred")
 			continue
 		}
-		_ = distance
+		err = kc.client.AggregateDistance(types.NewDistance(distance, data.OBUID, time.Now().UnixNano()))
+		if err != nil {
+			logrus.Error("aggregate error", err.Error())
+			continue
+		}
 	}
 	fmt.Println("exit readMessageLoop")
 	kc.c.Close()
