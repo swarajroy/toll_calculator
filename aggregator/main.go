@@ -1,17 +1,24 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"log"
+	"net"
 	"net/http"
 	"strconv"
+	"time"
 
+	"github.com/swarajroy/toll_calculator/aggregator/aggcleint"
 	"github.com/swarajroy/toll_calculator/types"
+	"google.golang.org/grpc"
 )
 
 func main() {
-	listenAddr := flag.String("listenaddr", ":3000", "the listening address of the HTTP Server")
+	httpListenAddr := flag.String("httpListenAddr", ":3000", "the listening address of the HTTP Server")
+	grpcListenAddr := flag.String("grpcListenAddr", ":3001", "the listening address of the GRPC Server")
 	flag.Parse()
 
 	var (
@@ -19,14 +26,40 @@ func main() {
 		svc   = NewAggregator(store)
 	)
 	svc = NewLogMiddleware(svc)
-	makeHTTPTransport(*listenAddr, svc)
+	go makeGRPCTransport(*grpcListenAddr, svc)
+	time.Sleep(time.Second * 2)
+	c, err := aggcleint.NewGrpcClient(*grpcListenAddr)
+	if err != nil {
+		log.Fatal(err)
+	}
+	c.AggregateDistance(context.Background(), &types.AggregatorDistanceRequest{
+		ObuID: 1,
+		Value: 58.55,
+		Unix:  time.Now().UnixNano(),
+	})
+	makeHTTPTransport(*httpListenAddr, svc)
+}
+
+func makeGRPCTransport(listenAddr string, svc Aggregator) error {
+	// Make a TCP Listener
+	fmt.Println("GRPC Transport running on ", listenAddr)
+	ln, err := net.Listen("tcp", listenAddr)
+	if err != nil {
+		return err
+	}
+	defer ln.Close()
+	// Make a native GRPC Server
+	server := grpc.NewServer([]grpc.ServerOption{}...)
+	// Register our DistanceAggServer
+	types.RegisterDistanceAggregatorServer(server, NewGRPCDistanceAggregatorServer(svc))
+	return server.Serve(ln)
 }
 
 func makeHTTPTransport(listenAddr string, svc Aggregator) {
 	fmt.Println("HTTP Transport running on ", listenAddr)
 	http.HandleFunc("/aggregate", handleAggregate(svc))
 	http.HandleFunc("/invoice", handleGetInvoice(svc))
-	http.ListenAndServe(listenAddr, nil)
+	log.Fatal(http.ListenAndServe(listenAddr, nil))
 }
 
 func handleGetInvoice(svc Aggregator) http.HandlerFunc {

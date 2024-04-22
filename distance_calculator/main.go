@@ -14,7 +14,7 @@ const (
 )
 
 func main() {
-	client := aggcleint.NewClient(ENDPOINT)
+	client := aggcleint.NewHttpClient(ENDPOINT)
 	svc := service.NewCalculatoServicer()
 	lm := middleware.NewLogMiddleware(svc)
 	kc, err := consumer.NewDataConsumer(TOPIC, lm, client)

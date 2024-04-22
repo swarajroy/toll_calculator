@@ -20,10 +20,10 @@ type KafkaDataConsumer struct {
 	c         *kafka.Consumer
 	isRunning bool
 	svc       service.CalculatorServicer
-	client    *aggcleint.Client
+	client    *aggcleint.HttpClient
 }
 
-func NewDataConsumer(topic string, svc service.CalculatorServicer, client *aggcleint.Client) (DataConsumer, error) {
+func NewDataConsumer(topic string, svc service.CalculatorServicer, client *aggcleint.HttpClient) (DataConsumer, error) {
 	c, err := kafka.NewConsumer(&kafka.ConfigMap{
 		"bootstrap.servers": "localhost",
 		"group.id":          "myGroup",
