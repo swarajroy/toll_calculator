@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -9,9 +8,7 @@ import (
 	"net"
 	"net/http"
 	"strconv"
-	"time"
 
-	"github.com/swarajroy/toll_calculator/aggregator/aggcleint"
 	"github.com/swarajroy/toll_calculator/types"
 	"google.golang.org/grpc"
 )
@@ -27,16 +24,16 @@ func main() {
 	)
 	svc = NewLogMiddleware(svc)
 	go makeGRPCTransport(*grpcListenAddr, svc)
-	time.Sleep(time.Second * 2)
-	c, err := aggcleint.NewGrpcClient(*grpcListenAddr)
-	if err != nil {
-		log.Fatal(err)
-	}
-	c.AggregateDistance(context.Background(), &types.AggregatorDistanceRequest{
-		ObuID: 1,
-		Value: 58.55,
-		Unix:  time.Now().UnixNano(),
-	})
+	//time.Sleep(time.Second * 2)
+	// c, err := aggcleint.NewGrpcClient(*grpcListenAddr)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// c.AggregateDistance(context.Background(), &types.AggregatorDistanceRequest{
+	// 	ObuID: 1,s
+	// 	Value: 58.55,
+	// 	Unix:  time.Now().UnixNano(),
+	// })
 	makeHTTPTransport(*httpListenAddr, svc)
 }
 

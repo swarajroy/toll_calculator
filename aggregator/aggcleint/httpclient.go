@@ -2,6 +2,7 @@ package aggcleint
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -19,8 +20,8 @@ func NewHttpClient(endpoint string) *HttpClient {
 	}
 }
 
-func (c *HttpClient) AggregateDistance(dist types.Distance) error {
-	b, err := json.Marshal(dist)
+func (c *HttpClient) AggregateDistance(ctx context.Context, aggReq *types.AggregatorDistanceRequest) error {
+	b, err := json.Marshal(aggReq)
 	if err != nil {
 		return err
 	}

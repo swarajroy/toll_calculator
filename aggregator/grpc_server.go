@@ -23,6 +23,5 @@ func (g *GRPCDistanceAggregatorServer) AggregateDistance(ctx context.Context, re
 		Value: req.Value,
 		Unix:  req.Unix,
 	}
-	g.svc.AggregateDistance(dist)
-	return nil, nil
+	return nil, g.svc.AggregateDistance(dist)
 }
