@@ -10,14 +10,20 @@ import (
 
 const (
 	TOPIC    = "obu-events"
-	ENDPOINT = "http://localhost:3000/aggregate"
+	ENDPOINT = "http://127.0.0.1:3000/aggregate"
 )
 
 func main() {
-	client := aggcleint.NewClient(ENDPOINT)
+	//httpclient := aggcleint.NewHttpClient(ENDPOINT)
+	grpcClient, err := aggcleint.NewGrpcClient(ENDPOINT)
+
+	if err != nil {
+		logrus.Fatal("grpc client construction errored")
+	}
+
 	svc := service.NewCalculatoServicer()
 	lm := middleware.NewLogMiddleware(svc)
-	kc, err := consumer.NewDataConsumer(TOPIC, lm, client)
+	kc, err := consumer.NewDataConsumer(TOPIC, lm, grpcClient)
 	if err != nil {
 		logrus.Fatal("kafka consumer creation errored")
 	}
