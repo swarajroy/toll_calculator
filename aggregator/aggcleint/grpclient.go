@@ -32,3 +32,15 @@ func (c *GrpcClient) AggregateDistance(ctx context.Context, req *types.Aggregato
 	}
 	return nil
 }
+
+func (gc *GrpcClient) GetInvoice(ctx context.Context, req *types.GetInvoiceRequest) (*types.Invoice, error) {
+	resp, err := gc.client.GetInvoice(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return &types.Invoice{
+		OBUID:         int(resp.ObuID),
+		TotalDistance: resp.TotalDistance,
+		InvoiceAmount: resp.InvoiceAmount,
+	}, nil
+}

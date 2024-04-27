@@ -4,12 +4,23 @@ option go_package = "github.com/swarajroy/toll_calculator/types";
 
 service DistanceAggregator {
     rpc AggregateDistance(AggregatorDistanceRequest) returns (None);
+    rpc GetInvoice(GetInvoiceRequest) returns (GetInvoiceResponse);
 }
 
 message None{}
 
+message GetInvoiceRequest {
+    int64 ObuID = 1;
+}
+
+message GetInvoiceResponse {
+    int64 ObuID = 1;
+    double TotalDistance = 2;
+    double InvoiceAmount = 3;
+}
+
 message AggregatorDistanceRequest {
-    int32 ObuID = 1;
+    int64 ObuID = 1;
     double Value = 2;
     int64 Unix = 3;
 }

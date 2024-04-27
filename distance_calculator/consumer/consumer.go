@@ -63,7 +63,7 @@ func (kc *KafkaDataConsumer) readMessageLoop() {
 			continue
 		}
 		err = kc.client.AggregateDistance(context.Background(), &types.AggregatorDistanceRequest{
-			ObuID: int32(data.OBUID),
+			ObuID: int64(data.OBUID),
 			Value: distance,
 			Unix:  time.Now().UnixNano(),
 		})

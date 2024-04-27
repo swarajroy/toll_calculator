@@ -25,3 +25,15 @@ func (g *GRPCDistanceAggregatorServer) AggregateDistance(ctx context.Context, re
 	}
 	return nil, g.svc.AggregateDistance(dist)
 }
+
+func (g *GRPCDistanceAggregatorServer) GetInvoice(ctx context.Context, req *types.GetInvoiceRequest) (*types.GetInvoiceResponse, error) {
+	inv, err := g.svc.Invoice(int(req.ObuID))
+	if err != nil {
+		return nil, err
+	}
+	return &types.GetInvoiceResponse{
+		ObuID:         int64(inv.OBUID),
+		InvoiceAmount: inv.InvoiceAmount,
+		TotalDistance: inv.TotalDistance,
+	}, nil
+}

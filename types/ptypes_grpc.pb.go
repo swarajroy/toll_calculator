@@ -23,6 +23,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DistanceAggregatorClient interface {
 	AggregateDistance(ctx context.Context, in *AggregatorDistanceRequest, opts ...grpc.CallOption) (*None, error)
+	GetInvoice(ctx context.Context, in *GetInvoiceRequest, opts ...grpc.CallOption) (*GetInvoiceResponse, error)
 }
 
 type distanceAggregatorClient struct {
@@ -42,11 +43,21 @@ func (c *distanceAggregatorClient) AggregateDistance(ctx context.Context, in *Ag
 	return out, nil
 }
 
+func (c *distanceAggregatorClient) GetInvoice(ctx context.Context, in *GetInvoiceRequest, opts ...grpc.CallOption) (*GetInvoiceResponse, error) {
+	out := new(GetInvoiceResponse)
+	err := c.cc.Invoke(ctx, "/DistanceAggregator/GetInvoice", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DistanceAggregatorServer is the server API for DistanceAggregator service.
 // All implementations must embed UnimplementedDistanceAggregatorServer
 // for forward compatibility
 type DistanceAggregatorServer interface {
 	AggregateDistance(context.Context, *AggregatorDistanceRequest) (*None, error)
+	GetInvoice(context.Context, *GetInvoiceRequest) (*GetInvoiceResponse, error)
 	mustEmbedUnimplementedDistanceAggregatorServer()
 }
 
@@ -56,6 +67,9 @@ type UnimplementedDistanceAggregatorServer struct {
 
 func (UnimplementedDistanceAggregatorServer) AggregateDistance(context.Context, *AggregatorDistanceRequest) (*None, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AggregateDistance not implemented")
+}
+func (UnimplementedDistanceAggregatorServer) GetInvoice(context.Context, *GetInvoiceRequest) (*GetInvoiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetInvoice not implemented")
 }
 func (UnimplementedDistanceAggregatorServer) mustEmbedUnimplementedDistanceAggregatorServer() {}
 
@@ -88,6 +102,24 @@ func _DistanceAggregator_AggregateDistance_Handler(srv interface{}, ctx context.
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DistanceAggregator_GetInvoice_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetInvoiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DistanceAggregatorServer).GetInvoice(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/DistanceAggregator/GetInvoice",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DistanceAggregatorServer).GetInvoice(ctx, req.(*GetInvoiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // DistanceAggregator_ServiceDesc is the grpc.ServiceDesc for DistanceAggregator service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -98,6 +130,10 @@ var DistanceAggregator_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AggregateDistance",
 			Handler:    _DistanceAggregator_AggregateDistance_Handler,
+		},
+		{
+			MethodName: "GetInvoice",
+			Handler:    _DistanceAggregator_GetInvoice_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
