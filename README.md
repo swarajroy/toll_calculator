@@ -12,3 +12,8 @@ set go bin dir in PATH like this PATH="${PATH}:${HOME}/go/bin"
 
 go get google.golang.org/protobuf
 go get google.golang.org/grpc
+
+'''
+instrumentation
+go get github.com/prometheus/client_golang/prometheus
+'''
