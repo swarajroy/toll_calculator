@@ -24,7 +24,7 @@ func NewKafkaProducer() (DataProducer, error) {
 	if err != nil {
 		return nil, err
 	}
-	//defer p.Close()
+	defer p.Close()
 
 	//Delivery report handler for produced messages
 	// go func() {

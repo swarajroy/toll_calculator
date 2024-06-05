@@ -1,7 +1,3 @@
-# toll_calculator
-
-toll_calculator
-
 brew install --build-from-source protobuf
 
 go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28
@@ -18,9 +14,8 @@ instrumentation
 go get github.com/prometheus/client_golang/prometheus
 '''
 
-the toll_calculator is a mono-repo consisting of the following microservices
-- obu - [to generate random sample data]
-- data_receiver
-- distance_calculator
-- aggregator
-- gateway
+aggregator
+
+- a microservice that is offering a http transport or a grpc transport to
+  - accept a post request to aggregate the distance per obu
+  - get the invoice by obu id computing the data in real time
