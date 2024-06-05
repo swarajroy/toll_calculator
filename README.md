@@ -17,3 +17,10 @@ go get google.golang.org/grpc
 instrumentation
 go get github.com/prometheus/client_golang/prometheus
 '''
+
+the toll_calculator is a mono-repo consisting of the following microservices
+- obu - [to generate random sample data]
+- data_receiver
+- distance_calculator
+- aggregator
+- gateway
