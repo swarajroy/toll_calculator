@@ -44,6 +44,7 @@ func NewDataConsumer(topic string, svc service.CalculatorServicer, client aggcle
 }
 
 func (kc *KafkaDataConsumer) readMessageLoop() {
+	defer kc.c.Close()
 	for kc.isRunning {
 		msg, err := kc.c.ReadMessage(-1)
 		if err == nil {
@@ -74,7 +75,7 @@ func (kc *KafkaDataConsumer) readMessageLoop() {
 		}
 	}
 	fmt.Println("exit readMessageLoop")
-	kc.c.Close()
+
 }
 
 func (kc *KafkaDataConsumer) Start() {
